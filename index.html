@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Smart Resource Manager</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #2c3e50, #4ca1af);
+    color: #eee;
+    min-height: 100vh;
+  }
+
+  h1 {
+    text-align: center;
+    font-weight: 900;
+    font-size: 3rem;
+    letter-spacing: 3px;
+    margin-bottom: 1rem;
+    text-shadow: 0 0 10px #1abc9c;
+  }
+
+  .container {
+    max-width: 1000px;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+  }
+
+  .card {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    padding: 20px;
+    flex: 1 1 300px;
+    min-width: 280px;
+    backdrop-filter: blur(10px);
+    transition: transform 0.3s ease;
+  }
+  .card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+  }
+
+  h2 {
+    font-weight: 700;
+    border-bottom: 2px solid #1abc9c;
+    padding-bottom: 0.3em;
+    margin-bottom: 1rem;
+    color: #1abc9c;
+  }
+
+  .stat {
+    margin-bottom: 1rem;
+  }
+  .stat-label {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+    font-size: 1.1rem;
+  }
+  .progress-bar {
+    height: 18px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.3);
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 12px;
+    transition: width 0.5s ease-in-out;
+  }
+  .cpu { background: #e74c3c; }
+  .ram { background: #f39c12; }
+  .disk { background: #3498db; }
+  .battery { background: #2ecc71; }
+
+  ul {
+    list-style: none;
+    padding-left: 1em;
+  }
+  ul li {
+    background: rgba(26, 188, 156, 0.15);
+    margin-bottom: 0.6rem;
+    padding: 10px 15px;
+    border-radius: 10px;
+    font-weight: 600;
+    color: #1abc9c;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  }
+
+  .process-list {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  .process {
+    background: rgba(255, 255, 255, 0.1);
+    margin-bottom: 10px;
+    padding: 12px 15px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 600;
+  }
+  .process-name {
+    flex-grow: 1;
+    margin-left: 10px;
+    color: #ecf0f1;
+  }
+
+  .btn {
+    background: #e74c3c;
+    border: none;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.9rem;
+    transition: background 0.3s ease, transform 0.2s ease;
+  }
+  .btn:hover { background: #c0392b; transform: scale(1.05); }
+  .btn:active { transform: scale(0.95); }
+
+  .process-list::-webkit-scrollbar {
+    width: 8px;
+  }
+  .process-list::-webkit-scrollbar-thumb {
+    background: #1abc9c;
+    border-radius: 8px;
+  }
+
+  @media (max-width: 720px) {
+    .container { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<h1>⚡ Smart Resource Manager</h1>
+
+<div class="container">
+
+  <section class="card">
+    <h2>System Stats</h2>
+
+    <div class="stat">
+      <div class="stat-label">
+        <span>CPU Usage</span>
+        <span>{{ stats['cpu'] }}%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill cpu" style="width: {{ stats['cpu'] }}%;"></div></div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-label">
+        <span>RAM Usage</span>
+        <span>{{ stats['ram'] }}%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill ram" style="width: {{ stats['ram'] }}%;"></div></div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-label">
+        <span>Disk Usage</span>
+        <span>{{ stats['disk'] }}%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill disk" style="width: {{ stats['disk'] }}%;"></div></div>
+    </div>
+
+    {% if stats['battery'] is not none %}
+    <div class="stat">
+      <div class="stat-label">
+        <span>Battery</span>
+        <span>{{ stats['battery'] }}%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill battery" style="width: {{ stats['battery'] }}%;"></div></div>
+    </div>
+    {% endif %}
+
+    <!-- Optional basic fallback -->
+    <p style="margin-top:1rem;"><strong>CPU:</strong> {{ stats['cpu'] }}% | <strong>RAM:</strong> {{ stats['ram'] }}% | <strong>Disk:</strong> {{ stats['disk'] }}%{% if stats['battery'] is not none %} | <strong>Battery:</strong> {{ stats['battery'] }}%{% endif %}</p>
+  </section>
+
+  <section class="card">
+    <h2>Suggestions</h2>
+    {% if suggestions %}
+      <ul>
+        {% for s in suggestions %}
+          <li>💡 {{ s }}</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>No suggestions. System looks good! 🎉</p>
+    {% endif %}
+  </section>
+
+
+
+
+  <section class="card process-list">
+    <h2>Running Processes</h2>
+    {% for pid, name in processes %}
+      <div class="process" title="PID: {{ pid }}">
+        <span>#{{ pid }}</span>
+        <span class="process-name">{{ name }}</span>
+        <form action="/kill/{{ pid }}" method="post" style="margin:0;">
+          <button class="btn" title="Kill process {{ name }}">Kill</button>
+        </form>
+      </div>
+    {% endfor %}
+  </section>
+    <form action="/auto_optimize" method="get">
+    <button class="btn">Auto Optimize</button>
+</form>
+
+</div>
+</body>
+</html>

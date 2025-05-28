@@ -36,9 +36,10 @@ def auto_kill_useless_processes():
             name = proc.info['name']
             memory_mb = proc.info['memory_info'].rss / (1024 * 1024)
             cpu = proc.info['cpu_percent']
-
+            
             if name not in WHITELIST and memory_mb > MEMORY_THRESHOLD_MB and cpu < CPU_THRESHOLD_PERCENT:
                 psutil.Process(proc.info['pid']).terminate()
                 print(f"Killed: {name} (PID: {proc.info['pid']}) using {memory_mb:.2f}MB and {cpu:.2f}% CPU")
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             continue
+            
